@@ -1,9 +1,4 @@
-client.c        原始输出数据客户端
-client_gbk.c    数据由gbk 转 utf8 客户端
 
-server_gbk.c    发出 gbk 中文服务器端
-server_utf8.c   发出 utf8 中文服务器端
-
-utf8.c          gbk utf8 转换函数实现
-utf8.h          gbk utf8 转换函数声明
+utf8.c          gbk ot utf8, utf8 to gbk implement.
+utf8.h          gbk utf8 header file
 
