@@ -34,12 +34,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <memory.h>
 
 #include "utf8.h"
 
 
 #ifdef __WIN32__
-void utf8_to_gb(char* src, char* dst, int len)
+void utf8_to_gb(const char* src, char* dst, int len)
 {
     int ret = 0;
     WCHAR* strA;
@@ -63,7 +64,7 @@ void utf8_to_gb(char* src, char* dst, int len)
     free( strA );
 }
 
-void gb_to_utf8(char* src, char* dst, int len)
+void gb_to_utf8(const char* src, char* dst, int len)
 {
     int ret = 0;
     WCHAR* strA;
@@ -88,12 +89,19 @@ void gb_to_utf8(char* src, char* dst, int len)
 }
 #else   //Linux
 // starkwong: In iconv implementations, inlen and outlen should be type of size_t not uint, which is different in length on Mac
-void utf8_to_gb(char* src, char* dst, int len)
+void utf8_to_gb(const char* src, char* dst, int len)
 {
     int ret = 0;
     size_t inlen = strlen(src) + 1;
     size_t outlen = len;
-    char* inbuf = src;
+
+    // duanqn: The iconv function in Linux requires non-const char *
+    // So we need to copy the source string
+    char* inbuf = (char *)malloc(len);
+    char* inbuf_hold = inbuf;   // iconv may change the address of inbuf
+                                // so we use another pointer to keep the address
+    memcpy(inbuf, src, len);
+
     char* outbuf = dst;
     iconv_t cd;
     cd = iconv_open("GBK", "UTF-8");
@@ -105,14 +113,22 @@ void utf8_to_gb(char* src, char* dst, int len)
 
         iconv_close(cd);
     }
+    free(inbuf_hold);   // Don't pass in inbuf as it may have been modified
 }
 
-void gb_to_utf8(char* src, char* dst, int len)
+void gb_to_utf8(const char* src, char* dst, int len)
 {
     int ret = 0;
     size_t inlen = strlen(src) + 1;
     size_t outlen = len;
-    char* inbuf = src;
+
+    // duanqn: The iconv function in Linux requires non-const char *
+    // So we need to copy the source string
+    char* inbuf = (char *)malloc(len);
+    char* inbuf_hold = inbuf;   // iconv may change the address of inbuf
+                                // so we use another pointer to keep the address
+    memcpy(inbuf, src, len);
+
     char* outbuf2 = NULL;
     char* outbuf = dst;
     iconv_t cd;
@@ -137,6 +153,7 @@ void gb_to_utf8(char* src, char* dst, int len)
 
         iconv_close(cd);
     }
+    free(inbuf_hold);   // Don't pass in inbuf as it may have been modified
 }
 #endif
 
