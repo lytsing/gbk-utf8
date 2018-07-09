@@ -33,7 +33,7 @@ extern "C" {
  * @param len [in] The most bytes which starting at dst, will be written.
  *
  */
-void utf8_to_gb(char* src, char* dst, int len);
+void utf8_to_gb(const char* src, char* dst, int len);
 
 /**
  * GBK to UTF-8
@@ -42,7 +42,7 @@ void utf8_to_gb(char* src, char* dst, int len);
  * @param dst [out]
  * @param len [in] The most bytes which starting at dst, will be written.
  */
-void gb_to_utf8(char* src, char* dst, int len);
+void gb_to_utf8(const char* src, char* dst, int len);
 
 #ifdef __cplusplus
 }
