@@ -2,8 +2,6 @@
  *  Copyright (C) 2008  Huang Guan
  *  Copyright (C) 2011  iBoxpay.com inc.
  *
- *  $Id$
- *
  *  Description: This file mainly includes the functions about utf8
  *
  *  History:
@@ -30,130 +28,159 @@
 #include <iconv.h>
 #endif
 
+#include <stddef.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <memory.h>
 
 #include "utf8.h"
 
 
 #ifdef __WIN32__
-void utf8_to_gb(const char* src, char* dst, int len)
+int utf8_to_gb(const char* src, char* dst, int len)
 {
     int ret = 0;
     WCHAR* strA;
-    int i= MultiByteToWideChar(CP_UTF8, 0, src, -1, NULL, 0);
-    if (i <= 0) {
-        printf("ERROR.");
-        return;
-    }
-    strA = (WCHAR*)malloc(i * 2);
+
+    if (!src || !dst || len <= 0)
+        return -1;
+
+    int i = MultiByteToWideChar(CP_UTF8, 0, src, -1, NULL, 0);
+    if (i <= 0)
+        return -1;
+    strA = (WCHAR*)malloc((size_t)i * sizeof(WCHAR));
+    if (!strA)
+        return -1;
     MultiByteToWideChar(CP_UTF8, 0, src, -1, strA, i);
     i = WideCharToMultiByte(CP_ACP, 0, strA, -1, NULL, 0, NULL, NULL);
-    if (len >= i) {
-        ret = WideCharToMultiByte(CP_ACP, 0, strA, -1, dst, i, NULL, NULL);
-        dst[i] = 0;
-    }
-    if (ret <= 0) {
+    if (len < i) {
         free(strA);
-        return;
+        return -1;
     }
-
-    free( strA );
+    ret = WideCharToMultiByte(CP_ACP, 0, strA, -1, dst, i, NULL, NULL);
+    free(strA);
+    if (ret <= 0)
+        return -1;
+    return 0;
 }
 
-void gb_to_utf8(const char* src, char* dst, int len)
+int gb_to_utf8(const char* src, char* dst, int len)
 {
     int ret = 0;
     WCHAR* strA;
-    int i= MultiByteToWideChar(CP_ACP, 0, src, -1, NULL, 0);
-    if (i <= 0) {
-        printf("ERROR.");
-        return;
-    }
-    strA = (WCHAR*)malloc(i * 2);
+
+    if (!src || !dst || len <= 0)
+        return -1;
+
+    int i = MultiByteToWideChar(CP_ACP, 0, src, -1, NULL, 0);
+    if (i <= 0)
+        return -1;
+    strA = (WCHAR*)malloc((size_t)i * sizeof(WCHAR));
+    if (!strA)
+        return -1;
     MultiByteToWideChar(CP_ACP, 0, src, -1, strA, i);
     i = WideCharToMultiByte(CP_UTF8, 0, strA, -1, NULL, 0, NULL, NULL);
-    if (len >= i) {
-        ret = WideCharToMultiByte(CP_UTF8, 0, strA, -1, dst, i, NULL, NULL);
-        dst[i] = 0;
-    }
-
-    if (ret <= 0) {
+    if (len < i) {
         free(strA);
-        return;
+        return -1;
     }
+    ret = WideCharToMultiByte(CP_UTF8, 0, strA, -1, dst, i, NULL, NULL);
     free(strA);
+    if (ret <= 0)
+        return -1;
+    return 0;
 }
-#else   //Linux
+#else   /* Linux / macOS */
 // starkwong: In iconv implementations, inlen and outlen should be type of size_t not uint, which is different in length on Mac
-void utf8_to_gb(const char* src, char* dst, int len)
+int utf8_to_gb(const char* src, char* dst, int len)
 {
-    int ret = 0;
-    size_t inlen = strlen(src) + 1;
-    size_t outlen = len;
+    int ret = -1;
+    size_t inlen;
+    size_t outlen;
 
-    // duanqn: The iconv function in Linux requires non-const char *
-    // So we need to copy the source string
-    char* inbuf = (char *)malloc(len);
-    char* inbuf_hold = inbuf;   // iconv may change the address of inbuf
-                                // so we use another pointer to keep the address
-    memcpy(inbuf, src, len);
+    if (!src || !dst || len <= 0)
+        return -1;
+
+    inlen = strlen(src) + 1;
+    outlen = (size_t)len;
+
+    char* inbuf = (char *)malloc(inlen);
+    if (!inbuf)
+        return -1;
+    char* inbuf_hold = inbuf;
+    memcpy(inbuf, src, inlen);
 
     char* outbuf = dst;
-    iconv_t cd;
-    cd = iconv_open("GBK", "UTF-8");
-    if (cd != (iconv_t)-1) {
-        ret = iconv(cd, &inbuf, &inlen, &outbuf, &outlen);
-        if (ret != 0) {
-            printf("iconv failed err: %s\n", strerror(errno));
-        }
-
-        iconv_close(cd);
+    iconv_t cd = iconv_open("GBK", "UTF-8");
+    if (cd == (iconv_t)-1) {
+        free(inbuf_hold);
+        return -1;
     }
-    free(inbuf_hold);   // Don't pass in inbuf as it may have been modified
+    ret = iconv(cd, &inbuf, &inlen, &outbuf, &outlen);
+    iconv_close(cd);
+    free(inbuf_hold);
+    if (ret != 0)
+        return -1;
+    *outbuf = '\0';
+    return 0;
 }
 
-void gb_to_utf8(const char* src, char* dst, int len)
+int gb_to_utf8(const char* src, char* dst, int len)
 {
-    int ret = 0;
-    size_t inlen = strlen(src) + 1;
-    size_t outlen = len;
+    int ret = -1;
+    size_t inlen;
+    size_t outlen;
 
-    // duanqn: The iconv function in Linux requires non-const char *
-    // So we need to copy the source string
-    char* inbuf = (char *)malloc(len);
-    char* inbuf_hold = inbuf;   // iconv may change the address of inbuf
-                                // so we use another pointer to keep the address
-    memcpy(inbuf, src, len);
+    if (!src || !dst || len <= 0)
+        return -1;
+
+    inlen = strlen(src) + 1;
+    outlen = (size_t)len;
+
+    char* inbuf = (char *)malloc(inlen);
+    if (!inbuf)
+        return -1;
+    char* inbuf_hold = inbuf;
+    memcpy(inbuf, src, inlen);
 
     char* outbuf2 = NULL;
     char* outbuf = dst;
-    iconv_t cd;
-
-    // starkwong: if src==dst, the string will become invalid during conversion since UTF-8 is 3 chars in Chinese but GBK is mostly 2 chars
     if (src == dst) {
-        outbuf2 = (char*)malloc(len);
-        memset(outbuf2, 0, len);
+        outbuf2 = (char*)malloc((size_t)len);
+        if (!outbuf2) {
+            free(inbuf_hold);
+            return -1;
+        }
         outbuf = outbuf2;
     }
 
-    cd = iconv_open("UTF-8", "GBK");
-    if (cd != (iconv_t)-1) {
-        ret = iconv(cd, &inbuf, &inlen, &outbuf, &outlen);
-        if (ret != 0)
-            printf("iconv failed err: %s\n", strerror(errno));
-
-        if (outbuf2 != NULL) {
-            strcpy(dst, outbuf2);
-            free(outbuf2);
-        }
-
-        iconv_close(cd);
+    iconv_t cd = iconv_open("UTF-8", "GBK");
+    if (cd == (iconv_t)-1) {
+        free(outbuf2);
+        free(inbuf_hold);
+        return -1;
     }
-    free(inbuf_hold);   // Don't pass in inbuf as it may have been modified
+    ret = iconv(cd, &inbuf, &inlen, &outbuf, &outlen);
+    if (ret != 0) {
+        iconv_close(cd);
+        free(outbuf2);
+        free(inbuf_hold);
+        return -1;
+    }
+    if (outbuf2 != NULL) {
+        size_t written = (size_t)len - outlen;
+        if (written > (size_t)len - 1)
+            written = (size_t)len - 1;
+        memcpy(dst, outbuf2, written);
+        dst[written] = '\0';
+        free(outbuf2);
+    } else {
+        *outbuf = '\0';
+    }
+    iconv_close(cd);
+    free(inbuf_hold);
+    return 0;
 }
 #endif
 

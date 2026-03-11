@@ -2,8 +2,6 @@
  * Copyright (C) 2008  Huang Guan
  * Copyright (C) 2011  iBoxpay.com inc.
  *
- * $Id$
- *
  * Description: GBK UTF-8 iconv functions header file
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,8 +17,8 @@
  * limitations under the License.
  */
 
-#ifndef _UTF8_H
-#define _UTF8_H
+#ifndef UTF8_H
+#define UTF8_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,25 +26,25 @@ extern "C" {
 
 /**
  * UTF-8 to GBK
- * @param src [in]
- * @param dst [out]
- * @param len [in] The most bytes which starting at dst, will be written.
- *
+ * @param src [in]  Null-terminated UTF-8 string (must not be NULL)
+ * @param dst [out] Output buffer for GBK string (must not be NULL, null-terminated on success)
+ * @param len [in]  Size of dst in bytes, must be > 0 (max bytes to write including '\0')
+ * @return 0 on success, -1 on error (NULL src/dst, len<=0, buffer too small, conversion error, or OOM)
  */
-void utf8_to_gb(const char* src, char* dst, int len);
+int utf8_to_gb(const char* src, char* dst, int len);
 
 /**
  * GBK to UTF-8
- *
- * @param src [in]
- * @param dst [out]
- * @param len [in] The most bytes which starting at dst, will be written.
+ * @param src [in]  Null-terminated GBK string (must not be NULL)
+ * @param dst [out] Output buffer for UTF-8 string (must not be NULL, null-terminated on success)
+ * @param len [in]  Size of dst in bytes, must be > 0 (max bytes to write including '\0')
+ * @return 0 on success, -1 on error (NULL src/dst, len<=0, buffer too small, conversion error, or OOM)
  */
-void gb_to_utf8(const char* src, char* dst, int len);
+int gb_to_utf8(const char* src, char* dst, int len);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif  // end of _UTF8_H
+#endif /* UTF8_H */
 
