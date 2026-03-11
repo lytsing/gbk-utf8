@@ -1,37 +1,37 @@
-# GBK ↔ UTF-8 转换库
+# GBK ↔ UTF-8 conversion library
 
-在 Windows 上使用系统 API，在 Linux/macOS 上使用 `iconv`，实现 GBK 与 UTF-8 之间的转换。
+Converts between GBK and UTF-8 using the system API on Windows and `iconv` on Linux/macOS.
 
-## 构建
+## Build
 
 ```bash
 make
 ```
 
-生成 `utf8.o`，可链接到你的程序中。Linux/macOS 下链接时需加 `-liconv`：
+This produces `utf8.o`, which you can link into your program. On Linux/macOS, link with `-liconv`:
 
 ```bash
 gcc -o myapp myapp.c utf8.o -liconv
 ```
 
-## 测试
+## Tests
 
 ```bash
 make test
 ```
 
-会编译并运行 `test_utf8`，覆盖 UTF-8↔GBK 转换、往返、ASCII、空指针/长度校验及缓冲区过小等用例。Windows 下若未装 iconv，可执行：`make test LDFLAGS=`。
+This builds and runs `test_utf8`, covering UTF-8↔GBK conversion, round-trip, ASCII, null/length checks, and buffer-too-small cases. On Windows without iconv, run: `make test LDFLAGS=`.
 
 ## API
 
 - **`int utf8_to_gb(const char *src, char *dst, int len)`**  
-  UTF-8 → GBK。`src` 为以 `\0` 结尾的 UTF-8 串，`dst` 为输出缓冲区，`len` 为 `dst` 的字节数。成功返回 `0`，失败返回 `-1`。
+  UTF-8 → GBK. `src` is a null-terminated UTF-8 string, `dst` is the output buffer, `len` is the size of `dst` in bytes. Returns `0` on success, `-1` on error.
 
 - **`int gb_to_utf8(const char *src, char *dst, int len)`**  
-  GBK → UTF-8。参数与返回值同上。
+  GBK → UTF-8. Same parameters and return value as above.
 
-调用方需保证 `dst` 至少为 `len` 字节；失败时 `dst` 内容未定义，可根据返回值判断并重试或报错。
+The caller must ensure `dst` has at least `len` bytes. On failure, the contents of `dst` are undefined; check the return value to retry or report an error.
 
-## 许可证
+## License
 
 Apache License 2.0
